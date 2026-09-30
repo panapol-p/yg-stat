@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YG Stat</title>
+<meta name="theme-color" content="#0c0b0e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='g' cx='35%25' cy='30%25' r='75%25'%3E%3Cstop offset='0' stop-color='%23f2cf7c'/%3E%3Cstop offset='.45' stop-color='%23d6a84e'/%3E%3Cstop offset='1' stop-color='%239a7431'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='%230c0b0e'/%3E%3Ccircle cx='32' cy='32' r='27' fill='url(%23g)'/%3E%3Ctext x='32' y='40' text-anchor='middle' font-family='Georgia,serif' font-weight='700' font-size='24' fill='%231a1408'%3EYG%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script src="vendor/chart.umd.min.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">YG</span>
+    <div>
+      <div class="title">YG Stat <span class="ver" id="appVersion"></span></div>
+      <div class="sub" id="lastUpdate">—</div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-tab="entry" class="on">บันทึก</button>
+    <button data-tab="overview">ภาพรวม</button>
+    <button data-tab="exp">EXP</button>
+    <button data-tab="money">การเงิน</button>
+    <button data-tab="conq">พิชิต</button>
+    <button data-tab="history">ประวัติ</button>
+    <button data-tab="chars">ตัวละคร</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===================================================== บันทึก -->
+  <section id="tab-entry" class="tab on">
+    <div class="row-bar">
+      <label class="field">
+        <span>วันที่</span>
+        <input type="date" id="entryDate">
+      </label>
+      <button class="ghost" id="btnToday">วันนี้</button>
+      <button class="ghost" id="btnPrevDay">◀ วันก่อน</button>
+      <button class="ghost" id="btnNextDay">วันถัดไป ▶</button>
+      <span class="spacer"></span>
+      <span class="hint">ติ๊ก “บันทึก” เฉพาะตัวที่เล่นวันนี้ · แถวที่ไม่ติ๊กจะไม่ถูกบันทึก · แก้ตัวเลขแล้วจะติ๊กให้เอง</span>
+    </div>
+    <div id="entryRows" class="entry-rows"></div>
+    <div class="row-bar end">
+      <span id="saveMsg" class="hint"></span>
+      <button class="primary" id="btnSave">บันทึกวันนี้</button>
+    </div>
+    <details class="help">
+      <summary>วิธีกรอก</summary>
+      <ul>
+        <li><b>Lv / EXP%</b> ค่าที่เห็นในเกม ณ ตอนบันทึก (EXP% ใส่ทศนิยมได้ เช่น 37.42)</li>
+        <li><b>EXP ติดลบ (M)</b> (เฉพาะอาชีพที่ตายแล้ว EXP% ไม่ลด) คือยอด EXP ติดลบที่เหลือในสถานะ กรอกเป็นหน่วยล้านเหมือนเงิน เช่น <code>500</code> = 500M · ไม่ติดลบใส่ <code>0</code> · ระหว่างติดลบ EXP% ยังขึ้นตามปกติ (EXP ที่ได้ถูกแบ่งส่วนหนึ่งไปหักยอดนี้) จึงไม่นำมาหักจากความคืบหน้า แต่แสดงแยกพร้อมอัตราใช้คืนต่อวัน</li>
+        <li><b>เงิน (M)</b> กรอกเป็นหน่วยล้าน เช่น <code>713.11</code> = 713,110,000 · ทศนิยมได้ 3 ตำแหน่ง · ถ้าอยากพิมพ์เต็มจำนวนให้ต่อท้ายด้วย <code>g</code> เช่น <code>713106021g</code> (หรือพิมพ์ตัวเลขตั้งแต่ 100,000 ขึ้นไปโดยไม่ใส่หน่วย ระบบจะถือว่าเป็นเงินเต็มจำนวน) · ในไฟล์ CSV ยังเก็บเป็นเงินเต็มจำนวนเหมือนเดิม</li>
+        <li><b>พิชิต</b> = ค่าพิชิตศัตรูสะสมของตัวนั้น ณ ตอนบันทึก (ใส่ตัวเลขที่เห็นในเกม ระบบจะคำนวณส่วนที่เพิ่มต่อวันให้เอง)</li>
+        <li><b>ตาย (ครั้ง)</b> จำนวนครั้งที่ตายในวันนั้น (ไม่บังคับ) ใช้ดูคู่กับ EXP ที่ได้ต่อวันในแท็บ EXP</li>
+        <li><b>คลัง/อื่นๆ</b> คือเงินที่ไม่ได้อยู่กับตัวละคร 6 ตัวนี้ (ตัวฝากของ, คลัง ฯลฯ) นับรวมในทรัพย์สินรวม</li>
+        <li>บันทึกวันเดียวกันซ้ำ = ทับค่าเดิมของวันนั้น</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- ===================================================== ภาพรวม -->
+  <section id="tab-overview" class="tab">
+    <div class="tiles" id="ovTiles"></div>
+    <div class="card">
+      <div class="card-h"><h3>สถานะล่าสุดแต่ละตัว</h3><span class="hint">อัตรา/วัน คำนวณจาก 7 วันล่าสุดที่มีข้อมูล</span></div>
+      <div class="table-wrap"><table id="ovTable" class="data"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>ทรัพย์สินรวม 30 วันล่าสุด</h3></div>
+      <div class="chart-box"><canvas id="ovMoneyChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== EXP -->
+  <section id="tab-exp" class="tab">
+    <div class="row-bar">
+      <div class="chips" id="expCharChips"></div>
+      <span class="spacer"></span>
+      <div class="chips range" data-for="exp">
+        <button data-range="7">7 วัน</button>
+        <button data-range="30" class="on">30 วัน</button>
+        <button data-range="90">90 วัน</button>
+        <button data-range="0">ทั้งหมด</button>
+      </div>
+    </div>
+    <div class="tiles" id="expTiles"></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h3>ความคืบหน้า (Lv + EXP%)</h3></div>
+        <div class="chart-box"><canvas id="expNetChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>EXP% กับ EXP ติดลบ (M)</h3></div>
+        <div class="chart-box"><canvas id="expPctChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>EXP ที่ได้ต่อวัน (%)</h3><span class="hint">ช่วงที่เว้นหลายวันจะเฉลี่ยต่อวัน</span></div>
+        <div class="chart-box"><canvas id="expGainChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>เทียบทุกตัว: EXP สะสมในช่วงที่เลือก (%)</h3></div>
+        <div class="chart-box"><canvas id="expCompareChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== การเงิน -->
+  <section id="tab-money" class="tab">
+    <div class="row-bar">
+      <span class="hint">ทรัพย์สินรวม = เงินล่าสุดของทุกตัว + คลัง/อื่นๆ (วันที่ไม่ได้กรอกตัวไหน จะใช้ค่าล่าสุดของตัวนั้น)</span>
+      <span class="spacer"></span>
+      <div class="chips range" data-for="money">
+        <button data-range="7">7 วัน</button>
+        <button data-range="30" class="on">30 วัน</button>
+        <button data-range="90">90 วัน</button>
+        <button data-range="0">ทั้งหมด</button>
+      </div>
+    </div>
+    <div class="tiles" id="moneyTiles"></div>
+    <div class="card">
+      <div class="card-h"><h3>ทรัพย์สินรวม</h3></div>
+      <div class="chart-box tall"><canvas id="moneyTotalChart"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h3>แยกตามตัวละคร (ซ้อนกัน)</h3></div>
+        <div class="chart-box"><canvas id="moneyStackChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>เปลี่ยนแปลงต่อวัน</h3></div>
+        <div class="chart-box"><canvas id="moneyDeltaChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>เงินที่ได้ต่อวัน แยกรายตัว</h3><span class="hint">เฉลี่ยในช่วงที่เลือก · โอนเงินข้ามตัวจะเห็นเป็นบวก/ลบของแต่ละตัว</span></div>
+        <div class="chart-box"><canvas id="moneyCharChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>เงินอยู่ที่ใครบ้าง (ล่าสุด)</h3></div>
+        <div class="table-wrap"><table id="moneyTable" class="data"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================== พิชิต -->
+  <section id="tab-conq" class="tab">
+    <div class="row-bar">
+      <div class="chips" id="conqCharChips"></div>
+      <span class="spacer"></span>
+      <div class="chips range" data-for="conq">
+        <button data-range="7">7 วัน</button>
+        <button data-range="30" class="on">30 วัน</button>
+        <button data-range="90">90 วัน</button>
+        <button data-range="0">ทั้งหมด</button>
+      </div>
+    </div>
+    <div class="tiles" id="conqTiles"></div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><h3>ค่าพิชิตศัตรูสะสม</h3></div>
+        <div class="chart-box"><canvas id="conqTotalChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>ได้ต่อวัน</h3><span class="hint">ช่วงที่เว้นหลายวันจะเฉลี่ยต่อวัน</span></div>
+        <div class="chart-box"><canvas id="conqGainChart"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>เทียบทุกตัว: พิชิตที่ได้เพิ่มในช่วงที่เลือก</h3></div>
+      <div class="chart-box"><canvas id="conqCompareChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>ค่าพิชิตล่าสุดแต่ละตัว</h3></div>
+      <div class="table-wrap"><table id="conqTable" class="data"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== ประวัติ -->
+  <section id="tab-history" class="tab">
+    <div class="row-bar">
+      <label class="field"><span>ตัวละคร</span><select id="histChar"><option value="">ทั้งหมด</option></select></label>
+      <span class="spacer"></span>
+      <span class="hint">นำเข้า = ไฟล์รูปแบบเดียวกับที่ดาวน์โหลด (UTF-8) · วันเดียวกันของตัวเดียวกันจะถูกทับ · สำรองข้อมูลเดิมให้ก่อนอัตโนมัติ</span>
+      <button class="ghost" id="btnImport">นำเข้า CSV</button>
+      <input type="file" id="importFile" accept=".csv,text/csv" hidden>
+      <a class="ghost btn" href="/api/export.csv" download>ดาวน์โหลด CSV รวม</a>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table id="histTable" class="data"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>คลัง/อื่นๆ</h3></div>
+      <div class="table-wrap"><table id="vaultTable" class="data"></table></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== ตัวละคร -->
+  <section id="tab-chars" class="tab">
+    <div class="card">
+      <div class="card-h"><h3>ตัวละคร</h3><span class="hint">“EXP ติดลบ” = อาชีพที่ตายแล้ว EXP% ไม่ลด แต่ติดสถานะ EXP ติดลบแยก (เช่น 500M)</span></div>
+      <div class="table-wrap"><table id="charTable" class="data"></table></div>
+      <div class="row-bar end"><button class="ghost" id="btnAddChar">+ เพิ่มตัวละคร</button></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>เป้าหมาย</h3><span class="hint">เป้าเลเวลตั้งรายตัวในตารางด้านบน (ช่อง “เป้า Lv”) · เว้นว่าง = ไม่ตั้งเป้า</span></div>
+      <div class="row-bar">
+        <label class="field"><span>เป้าทรัพย์สินรวม (M)</span><input type="text" id="goalGold" inputmode="decimal" placeholder="เช่น 20000"></label>
+        <button class="small" id="btnSaveGoal">บันทึก</button>
+        <span class="hint">ดูจำนวนวันที่คาดว่าจะถึงได้ในแท็บ “การเงิน”</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h3>ไฟล์ข้อมูล</h3></div>
+      <p class="hint">ข้อมูลเก็บเป็น CSV ในโฟลเดอร์ <code>data/</code> ข้างไฟล์โปรแกรม (characters.csv, snapshots.csv, vault.csv, settings.csv) · ถ้าแก้ไฟล์เองให้ปิดโปรแกรมก่อน</p>
+      <p class="hint">สำรองอัตโนมัติวันละชุดไว้ที่ <code>data/backups/วันที่/</code> (สถานะก่อนแก้ไขครั้งแรกของวัน เก็บ 14 ชุดล่าสุด) กู้คืนโดยปิดโปรแกรมแล้วก๊อปไฟล์ในชุดที่ต้องการกลับมาทับใน <code>data/</code></p>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

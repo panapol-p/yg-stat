@@ -1,0 +1,70 @@
+name: Release
+
+# ทุกครั้งที่มี commit เข้า main: คำนวณเลขเวอร์ชันถัดไป -> build -> สร้าง tag + GitHub Release พร้อมไฟล์ exe
+# เลขเวอร์ชันขึ้นตาม commit message (ดู scripts/next-version.sh)
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # ต้องมี tag และประวัติทั้งหมดเพื่อคำนวณเวอร์ชัน
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Vet + test
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Next version
+        id: ver
+        run: |
+          version=$(bash scripts/next-version.sh)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "next version: ${version:-<none, HEAD already released>}"
+
+      - name: Build
+        if: steps.ver.outputs.version != ''
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir dist
+          build() {
+            GOOS=$1 GOARCH=$2 go build -trimpath -ldflags "-s -w -X main.version=$VERSION" -o "dist/$3" .
+          }
+          build windows amd64 yg-stat.exe
+          build linux amd64 yg-stat-linux-amd64
+          build darwin arm64 yg-stat-macos-arm64
+          (cd dist && sha256sum * > checksums.txt)
+          ls -l dist
+
+      - name: Tag + release
+        if: steps.ver.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          gh release create "$VERSION" dist/* \
+            --target "$GITHUB_SHA" \
+            --title "$VERSION" \
+            --generate-notes
