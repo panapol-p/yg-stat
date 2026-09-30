@@ -272,7 +272,7 @@ async function loadState() {
   S.settings = st.settings || {}; S.version = st.version || '';
   $('#appVersion').textContent = S.version;
   const last = S.snapshots.map(s => s.date).concat(S.vault.map(v => v.date)).sort().pop();
-  $('#lastUpdate').textContent = last ? `บันทึกล่าสุด ${fmtDate(last)} · ${S.snapshots.length} รายการ` : 'ยังไม่มีข้อมูล';
+  $('#lastUpdate').textContent = last ? `บันทึกล่าสุด ${fmtDate(last)}` : 'ยังไม่มีข้อมูล';
 }
 
 /* ------------------------------------------------------------------ tab: บันทึก */
