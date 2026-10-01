@@ -52,12 +52,14 @@
 3. ดับเบิลคลิก `run.bat` ครั้งแรกจะ build `yg-stat.exe` ให้เอง แล้วเปิดเบราว์เซอร์
 
 ```
-build.bat      # build yg-stat.exe ใหม่ (หลังแก้โค้ดหรือไฟล์ใน static/) ใส่เลขเวอร์ชันจาก git tag ให้
+build.bat      # build yg-stat.exe ใหม่ (หลังแก้โค้ดหรือไฟล์ใน static/) ใส่เลขเวอร์ชัน ไอคอน และ version info ของ exe ให้
 run.bat        # รัน (build ให้ถ้ายังไม่มี exe) แล้วเปิด http://127.0.0.1:8765 ให้เอง
 go test ./...  # รันเทสต์
 ```
 
 บน macOS / Linux: `go build -o yg-stat . && ./yg-stat`
+
+`build.bat` จะเรียก [go-winres](https://github.com/tc-hib/go-winres) ผ่าน `go run` เพื่อสร้างไฟล์ `.syso` (ไอคอน + version info ที่เห็นใน Properties ของ exe) ครั้งแรกต้องต่อเน็ตเพื่อโหลดเครื่องมือนี้ ถ้าโหลดไม่ได้จะ build ต่อโดยไม่มีไอคอน · `go build` เฉย ๆ ก็ใช้ได้ แค่ไม่มีไอคอนและเวอร์ชันเป็น `dev`
 
 ### ตัวเลือกตอนรัน
 
@@ -136,7 +138,7 @@ go test ./...  # รันเทสต์
 
 1. รัน `go vet` + `go test`
 2. คำนวณเลขเวอร์ชันถัดไปจากข้อความ commit ตั้งแต่ tag ล่าสุด ([scripts/next-version.sh](scripts/next-version.sh))
-3. build `yg-stat.exe` (Windows), Linux, macOS โดยฝังเลขเวอร์ชันลงในโปรแกรม
+3. build `yg-stat.exe` (Windows พร้อมไอคอนและ version info ในไฟล์), Linux, macOS โดยฝังเลขเวอร์ชันลงในโปรแกรม
 4. สร้าง git tag + GitHub Release พร้อมไฟล์ที่ build, `checksums.txt` และ release notes ที่สรุปจาก commit/PR ให้เอง
 
 เลขเวอร์ชันขึ้นตามคำนำหน้าข้อความ commit ([Conventional Commits](https://www.conventionalcommits.org/)):
@@ -163,6 +165,7 @@ import.go      นำเข้า CSV
 store_test.go  เทสต์
 static/        index.html, app.js, style.css (ธีม + tokens), vendor/chart.umd.min.js
 scripts/       next-version.sh (คำนวณเลขเวอร์ชันถัดไป)
+winres/        ไอคอนและ version info ของ exe (winres.json, icon.png) ใช้กับ go-winres
 .github/       workflows: ci.yml (ตรวจ PR), release.yml (ออก release)
 docs/          ภาพหน้าจอที่ใช้ใน README
 ```

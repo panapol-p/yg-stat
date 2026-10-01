@@ -42,6 +42,13 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "next version: ${version:-<none, HEAD already released>}"
 
+      - name: Windows icon + version info (.syso)
+        if: steps.ver.outputs.version != ''
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          go run github.com/tc-hib/go-winres@v0.3.3 make --arch amd64 --product-version "$VERSION" --file-version "${VERSION#v}"
+
       - name: Build
         if: steps.ver.outputs.version != ''
         env:
