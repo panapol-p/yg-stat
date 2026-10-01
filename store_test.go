@@ -9,13 +9,36 @@ import (
 
 func ptr[T any](v T) *T { return &v }
 
-func TestSaveDayRoundTrip(t *testing.T) {
-	dir := t.TempDir()
+// testStore - store ว่างพร้อมตัวละคร 3 ตัว (id 1 ดาบ, 2 หมอ, 3 มิโกะ ติดลบ)
+func testStore(t *testing.T, dir string) *Store {
+	t.Helper()
 	s, err := OpenStore(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.SaveDay(DayPayload{Date: "2026-09-30", Rows: []DayRow{
+	for _, c := range []Character{{Name: "ดาบ", Job: "ดาบ"}, {Name: "หมอ", Job: "หมอ"}, {Name: "มิโกะ", Job: "มิโกะ", HasDebt: true}} {
+		c.Active = true
+		if _, err := s.SaveCharacter(c); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return s
+}
+
+func TestFreshStoreHasNoCharacters(t *testing.T) {
+	s, err := OpenStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n := len(s.State().Characters); n != 0 {
+		t.Errorf("store ใหม่ต้องไม่มีตัวละคร แต่มี %d", n)
+	}
+}
+
+func TestSaveDayRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	s := testStore(t, dir)
+	_, err := s.SaveDay(DayPayload{Date: "2026-09-30", Rows: []DayRow{
 		{CharID: 3, Level: ptr(131), ExpPct: ptr(53.18), Debt: ptr(int64(500_000_000)), Gold: ptr(int64(20_700_000)), Deaths: ptr(2), Note: "ตาย 2"},
 		{CharID: 1}, // แถวว่าง ต้องถูกข้าม
 	}})
@@ -43,21 +66,8 @@ func TestSaveDayRoundTrip(t *testing.T) {
 	}
 }
 
-func TestDefaultDebtClasses(t *testing.T) {
-	s, err := OpenStore(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, c := range s.State().Characters {
-		want := c.Job == "มิโกะ" || c.Job == "ชินพุง"
-		if c.HasDebt != want {
-			t.Errorf("%s: has_debt = %v, want %v", c.Name, c.HasDebt, want)
-		}
-	}
-}
-
 func TestExportImportRoundTrip(t *testing.T) {
-	src, _ := OpenStore(t.TempDir())
+	src := testStore(t, t.TempDir())
 	_, err := src.SaveDay(DayPayload{
 		Date: "2026-09-29",
 		Rows: []DayRow{{CharID: 3, Level: ptr(131), ExpPct: ptr(11.01), Debt: ptr(int64(800_000_000)), Gold: ptr(int64(25_200_000)), Conquer: ptr(int64(47173945)), Deaths: ptr(1)}},
@@ -72,11 +82,11 @@ func TestExportImportRoundTrip(t *testing.T) {
 	if _, err := src.SaveCharacter(Character{Name: "ตัวใหม่", Job: "หอก", Active: true}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := src.SaveDay(DayPayload{Date: "2026-09-29", Rows: []DayRow{{CharID: 7, Level: ptr(50), ExpPct: ptr(1.5)}}}); err != nil {
+	if _, err := src.SaveDay(DayPayload{Date: "2026-09-29", Rows: []DayRow{{CharID: 4, Level: ptr(50), ExpPct: ptr(1.5)}}}); err != nil {
 		t.Fatal(err)
 	}
 
-	dst, _ := OpenStore(t.TempDir())
+	dst := testStore(t, t.TempDir())
 	res, err := dst.ImportCSV(src.ExportCSV())
 	if err != nil {
 		t.Fatal(err)
@@ -85,7 +95,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 		t.Errorf("result = %+v", res)
 	}
 	st := dst.State()
-	if len(st.Snapshots) != 2 || len(st.Vault) != 1 || len(st.Characters) != 7 {
+	if len(st.Snapshots) != 2 || len(st.Vault) != 1 || len(st.Characters) != 4 {
 		t.Fatalf("state: %d snapshots, %d vault, %d chars", len(st.Snapshots), len(st.Vault), len(st.Characters))
 	}
 	x := st.Snapshots[0]
@@ -106,7 +116,7 @@ func TestExportImportRoundTrip(t *testing.T) {
 }
 
 func TestImportUnitsAndBadRows(t *testing.T) {
-	s, _ := OpenStore(t.TempDir())
+	s := testStore(t, t.TempDir())
 	csv := "date,character,level,exp_pct,gold_m,debt_m\n" +
 		"2026-09-30,ดาบ,131,41.27,796.9,\n" +
 		"30/09/2026,ดาบ,131,50,1,\n" + // รูปแบบวันที่ผิด

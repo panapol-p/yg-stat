@@ -281,6 +281,7 @@ function renderEntry() {
   $('#entryDate').value = date;
   const wrap = $('#entryRows');
   wrap.innerHTML = '';
+  if (!activeChars().length) wrap.innerHTML = '<div class="empty">ยังไม่มีตัวละคร เพิ่มได้ที่แท็บ <a href="#chars" data-goto="chars">ตัวละคร</a> (ใส่ชื่อ อาชีพ และติ๊ก “EXP ติดลบ” ถ้าอาชีพนั้นตายแล้ว EXP% ไม่ลด)</div>';
   for (const c of activeChars()) {
     const cur = S.snapshots.find(s => s.char_id === c.id && s.date === date);
     const prev = lastSnapOf(c.id, addDays(date, -1));
@@ -716,6 +717,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     render();
   });
   document.addEventListener('click', async e => {
+    const go = e.target.closest('[data-goto]'); if (go) { e.preventDefault(); switchTab(go.dataset.goto); return; }
     const t = e.target.closest('button'); if (!t) return;
     if (t.dataset.delSnap) confirmBtn(t, async () => { await api('/api/snapshots/' + t.dataset.delSnap, { method: 'DELETE' }); await loadState(); renderHistory(); toast('ลบแล้ว'); });
     if (t.dataset.delVault) confirmBtn(t, async () => { await api('/api/vault/' + t.dataset.delVault, { method: 'DELETE' }); await loadState(); renderHistory(); toast('ลบแล้ว'); });

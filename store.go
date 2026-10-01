@@ -74,16 +74,6 @@ type Store struct {
 	BackupKeep int // จำนวนชุดสำรองที่เก็บไว้ (0 = ไม่สำรอง)
 }
 
-// ตัวละครเริ่มต้น (แก้ได้ในแท็บ "ตัวละคร")
-var defaultCharacters = []Character{
-	{Name: "ดาบ", Job: "ดาบ"},
-	{Name: "หมอ", Job: "หมอ"},
-	{Name: "มิโกะ", Job: "มิโกะ", HasDebt: true},
-	{Name: "ชินพุง 1", Job: "ชินพุง", HasDebt: true},
-	{Name: "ชินพุง 2", Job: "ชินพุง", HasDebt: true},
-	{Name: "พิณ", Job: "พิณ"},
-}
-
 func OpenStore(dir string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
@@ -92,18 +82,7 @@ func OpenStore(dir string) (*Store, error) {
 	if err := s.load(); err != nil {
 		return nil, err
 	}
-	if len(s.chr) == 0 {
-		for i, c := range defaultCharacters {
-			c.ID = i + 1
-			c.SortOrder = i
-			c.Active = true
-			s.chr = append(s.chr, c)
-		}
-		if err := s.saveCharacters(); err != nil {
-			return nil, err
-		}
-	}
-	return s, nil
+	return s, nil // เริ่มต้นไม่มีตัวละคร ผู้ใช้เพิ่มเองในแท็บ "ตัวละคร"
 }
 
 // ------------------------------------------------------------- CSV helpers
